@@ -3,76 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Universal Cloud Tracker | Wardrobe Pro</title>
-    
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-
-    <script src="config.js"></script>
-
+    <title>Wardrobe Tracker | QR Focus</title>
     <style>
         :root { --primary: #2563eb; --success: #059669; --hotel: #0ea5e9; --home: #7c3aed; --danger: #dc2626; --bg: #f8fafc; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); padding: 20px; color: #1e293b; margin: 0; }
         .container { max-width: 900px; margin: auto; padding-bottom: 50px; }
         
-        /* Stats Dashboard */
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 20px; }
-        .stat-card { background: white; padding: 12px; border-radius: 10px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-bottom: 3px solid #e2e8f0; }
+        .stat-card { background: white; padding: 12px; border-radius: 10px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .stat-card h3 { margin: 0; font-size: 0.7rem; color: #64748b; text-transform: uppercase; }
         .stat-card p { margin: 5px 0 0; font-size: 1.4rem; font-weight: bold; }
 
-        /* Form Card */
-        .card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #e2e8f0; }
+        .card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
         .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         input, select { width: 100%; padding: 10px; margin: 5px 0; border: 2px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
         
-        .photo-btn { background: #f1f5f9; color: #475569; width: 100%; margin: 10px 0; border: 2px dashed #cbd5e1; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; }
-        #imagePreview { max-height: 140px; border-radius: 8px; display: none; margin: 10px auto; border: 1px solid #ddd; }
+        .photo-upload { margin: 10px 0; border: 2px dashed #cbd5e1; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer; }
+        #imagePreview { max-height: 100px; border-radius: 6px; display: none; margin: 10px auto; }
 
         button { padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn-add { background: var(--primary); color: white; width: 100%; margin-top: 5px; }
-        .btn-print-all { background: #1e293b; color: white; padding: 0 20px; }
+        .btn-add { background: var(--primary); color: white; width: 100%; }
+        .btn-print-all { background: #334155; color: white; }
         
-        /* Item List */
         .bag-item { 
             background: white; border-radius: 12px; padding: 15px; 
-            margin-bottom: 12px; display: grid; grid-template-columns: 120px 1fr 100px; gap: 15px;
+            margin-bottom: 12px; display: grid; grid-template-columns: 100px 1fr 100px; gap: 15px;
             align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 6px solid #cbd5e1;
         }
         .status-packed { border-left-color: var(--success); }
         .status-reached-hotel { border-left-color: var(--hotel); }
-        .status-reached-home { border-left-color: var(--home); }
-        .status-missing { border-left-color: var(--danger); }
 
-        .bag-img { width: 120px; height: 120px; object-fit: cover; border-radius: 8px; background: #f1f5f9; }
-        .info h4 { margin: 0 0 5px 0; font-size: 1.1rem; }
-        .info p { margin: 0; font-size: 0.85rem; color: #64748b; line-height: 1.4; }
-        .actions { margin-top: 10px; display: flex; gap: 8px; }
-        .btn-sm { padding: 6px 12px; font-size: 11px; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+        .bag-img { width: 100px; height: 100px; object-fit: cover; border-radius: 8px; background: #f1f5f9; }
+        .info h4 { margin: 0 0 5px 0; }
+        .info p { margin: 0; font-size: 0.85rem; color: #64748b; }
+        .actions { margin-top: 8px; display: flex; gap: 8px; }
+        .btn-sm { padding: 5px 10px; font-size: 11px; background: #f1f5f9; color: #475569; }
 
-        /* QR Label Design */
-        .qr-side { text-align: center; }
-        .qr-side img { width: 80px; display: block; margin: 0 auto 4px auto; border: 1px solid #eee; padding: 2px; background: white; }
-        .qr-side span { font-size: 10px; font-weight: 900; font-family: monospace; color: #334155; }
-        
-        #sync-indicator { position: fixed; bottom: 20px; left: 20px; background: #059669; color: white; padding: 8px 16px; border-radius: 30px; font-size: 12px; display: none; z-index: 999; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .qr-side img { width: 80px; display: block; margin-bottom: 4px; }
+        .qr-side span { font-size: 10px; font-weight: 900; font-family: monospace; }
     </style>
 </head>
 <body>
 
-<div id="sync-indicator">✓ Live Cloud Sync Active</div>
-
 <div class="container">
-    <h2 style="display: flex; justify-content: space-between; align-items: center;">
-        🌍 Wardrobe Tracker 
-        <small style="font-size: 0.8rem; color: var(--success);" id="connectionStatus">Checking Cloud...</small>
-    </h2>
+    <h2>🎒 Bag Tracker</h2>
 
     <div class="stats-grid" id="statsDashboard"></div>
 
     <div class="card">
         <div class="input-grid">
-            <input type="text" id="contents" placeholder="Item Name (e.g. Bridal Lehenga)">
+            <input type="text" id="contents" placeholder="Item (e.g. Wedding Suit)">
             <select id="category">
                 <option value="Lehenga">Lehenga</option>
                 <option value="Suit">Suit</option>
@@ -89,110 +69,88 @@
                 <option value="Reached Home">Reached Home</option>
                 <option value="Missing">Missing</option>
             </select>
-            <input type="text" id="location" placeholder="Current Location (e.g. Suitcase 1)">
+            <input type="text" id="location" placeholder="Current Location">
         </div>
-        <input type="text" id="appearance" placeholder="Bag Appearance (e.g. Silver Trunk with Ribbon)">
+        <input type="text" id="appearance" placeholder="Bag Appearance (e.g. Blue Suitcase)">
         
-        <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="handleImage(this)">
-        <button type="button" class="photo-btn" onclick="document.getElementById('photoInput').click()">📸 Add or Snap Photo</button>
-        <img id="imagePreview">
+        <div class="photo-upload" onclick="document.getElementById('photoInput').click()">
+            <span id="photoStatus">📸 Add Photo (Optional)</span>
+            <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="previewImage(this)">
+            <img id="imagePreview">
+        </div>
 
-        <button id="mainBtn" class="btn-add" onclick="uploadToCloud()">Add Item & Sync Everywhere</button>
+        <button id="mainBtn" class="btn-add" onclick="processBag()">Track Item</button>
     </div>
 
-    <div style="margin-bottom: 20px; display: flex; gap: 10px;">
-        <input type="text" id="searchInput" placeholder="🔍 Search description, ID, or location..." oninput="renderBags()" style="flex: 1; margin: 0;">
-        <button class="btn-print-all" onclick="printAllLabels()">Print All Labels</button>
+    <div style="margin-bottom: 15px; display: flex; gap: 10px;">
+        <input type="text" id="searchInput" placeholder="🔍 Search..." oninput="renderBags()" style="flex: 1; margin: 0;">
+        <button class="btn-print-all" onclick="printAll()">Print All Labels</button>
     </div>
 
     <div id="inventory"></div>
 </div>
 
 <script>
-    // Verify config.js is loaded
-    if (typeof SECURE_CONFIG === 'undefined') {
-        document.body.innerHTML = "<div style='padding:50px; text-align:center;'><h1>❌ Config Error</h1><p>Please ensure <b>config.js</b> is in the same folder and contains your Firebase keys.</p></div>";
-    }
-
-    // Initialize Cloud
-    firebase.initializeApp(SECURE_CONFIG);
-    const database = firebase.database();
-    
-    let bags = [];
+    let bags = JSON.parse(localStorage.getItem('wardrobe_v_clean')) || [];
     let editID = null;
-    let tempBase64 = "";
+    let currentBase64 = "";
 
-    // Real-time listener
-    database.ref('wardrobe').on('value', (snapshot) => {
-        const val = snapshot.val();
-        bags = val ? Object.values(val) : [];
-        document.getElementById('connectionStatus').innerText = "● Cloud Connected";
-        renderBags();
-        updateStats();
-        flashSyncStatus();
-    }, (error) => {
-        document.getElementById('connectionStatus').innerText = "❌ Sync Error";
-        console.error(error);
-    });
-
-    function handleImage(input) {
+    function previewImage(input) {
         if (input.files && input.files[0]) {
             const reader = new FileReader();
             reader.onload = (e) => {
-                tempBase64 = e.target.result;
-                document.getElementById('imagePreview').src = tempBase64;
-                document.getElementById('imagePreview').style.display = "block";
+                currentBase64 = e.target.result;
+                const img = document.getElementById('imagePreview');
+                img.src = currentBase64;
+                img.style.display = "block";
+                document.getElementById('photoStatus').style.display = "none";
             };
             reader.readAsDataURL(input.files[0]);
         }
     }
 
-    function uploadToCloud() {
+    function processBag() {
         const contents = document.getElementById('contents').value.trim();
-        if (!contents) return alert("Please enter an item name.");
+        if (!contents) return alert("Description required");
 
-        const id = editID || `${document.getElementById('category').value.substring(0,2).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
-        
-        // Static QR content (No location/status)
-        const qrContent = `ID: ${id}\nITEM: ${contents}\nCAT: ${document.getElementById('category').value}`;
-
-        const entry = {
-            id,
+        const data = {
             contents,
             category: document.getElementById('category').value,
             status: document.getElementById('status').value,
             appearance: document.getElementById('appearance').value.trim(),
             location: document.getElementById('location').value.trim(),
-            photo: tempBase64 || (editID ? (bags.find(b => b.id === editID)?.photo || "") : ""),
-            qrContent
+            photo: currentBase64
         };
 
-        database.ref('wardrobe/' + id).set(entry).then(() => {
+        if (editID) {
+            const idx = bags.findIndex(b => b.id === editID);
+            bags[idx] = { ...bags[idx], ...data };
             editID = null;
-            clearInputs();
-        }).catch(err => alert("Cloud Sync Failed: " + err.message));
+        } else {
+            const id = `${data.category.substring(0,2).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+            const qrContent = `ID: ${id}\nITEM: ${data.contents}\nCAT: ${data.category}\nLOOK: ${data.appearance}`;
+            bags.push({ id, ...data, qrContent });
+        }
+        
+        save();
+        clearInputs();
     }
 
     function renderBags() {
         const term = document.getElementById('searchInput').value.toLowerCase();
         const container = document.getElementById('inventory');
-        const filtered = bags.filter(b => 
-            b.contents.toLowerCase().includes(term) || 
-            b.id.toLowerCase().includes(term) || 
-            b.location.toLowerCase().includes(term)
-        );
+        const filtered = bags.filter(b => b.contents.toLowerCase().includes(term) || b.id.toLowerCase().includes(term));
         
         container.innerHTML = filtered.reverse().map(bag => `
             <div class="bag-item status-${bag.status.toLowerCase().replace(/\s/g, '-')}">
-                <img src="${bag.photo || 'https://via.placeholder.com/120?text=No+Photo'}" class="bag-img">
+                <img src="${bag.photo || 'https://via.placeholder.com/100?text=No+Photo'}" class="bag-img">
                 <div class="info">
                     <h4>${bag.contents}</h4>
-                    <p>🏷️ <b>${bag.id}</b> | <b>${bag.status}</b></p>
-                    <p>📍 Loc: ${bag.location || 'Unknown'}</p>
-                    <p>📦 Look: ${bag.appearance || 'N/A'}</p>
+                    <p>🏷️ ${bag.id} | <b>${bag.status}</b></p>
+                    <p>📍 Loc: ${bag.location || 'N/A'}</p>
                     <div class="actions">
                         <button class="btn-sm" onclick="startEdit('${bag.id}')">Edit</button>
-                        <button class="btn-sm" onclick="printSingleLabel('${bag.id}')">Label</button>
+                        <button class="btn-sm" onclick="printLabel('${bag.id}')">Print</button>
                         <button class="btn-sm" style="color:var(--danger)" onclick="deleteBag('${bag.id}')">Del</button>
                     </div>
                 </div>
@@ -204,37 +162,43 @@
         `).join('');
     }
 
-    function printSingleLabel(id) {
+    function updateStats() {
+        const stats = { Total: bags.length, Packed: bags.filter(b => b.status === 'Packed').length, 'At Hotel': bags.filter(b => b.status === 'Reached Hotel').length };
+        document.getElementById('statsDashboard').innerHTML = Object.entries(stats).map(([k, v]) => `
+            <div class="stat-card"><h3>${k}</h3><p>${v}</p></div>
+        `).join('');
+    }
+
+    // --- CLEAN PRINTING LOGIC (ID & QR ONLY) ---
+    function printLabel(id) {
         const bag = bags.find(b => b.id === id);
         const win = window.open('', '_blank');
         win.document.write(`
             <html><body style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; margin:0; font-family:monospace;">
-                <div style="text-align:center; padding:20px; border:2px solid #000; width:180px;">
-                    <div style="font-size:24px; font-weight:bold; margin-bottom:5px;">${bag.id}</div>
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(bag.qrContent)}" style="width:140px;">
+                <div style="text-align:center; padding:10px; border:1px solid #ccc; width:160px;">
+                    <div style="font-size:18px; font-weight:bold; margin-bottom:5px;">${bag.id}</div>
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(bag.qrContent)}" style="width:130px;">
                 </div>
                 <script>window.onload = function() { window.print(); window.close(); };<\/script>
             </body></html>
         `);
     }
 
-    function printAllLabels() {
-        if (bags.length === 0) return alert("No items to print.");
+    function printAll() {
         const win = window.open('', '_blank');
         let html = `<html><head><style>
-            body { display: flex; flex-wrap: wrap; gap: 15px; padding: 20px; font-family: monospace; }
+            body { display: flex; flex-wrap: wrap; gap: 20px; padding: 20px; font-family: monospace; }
             .label { width: 140px; text-align: center; border: 1px solid #eee; padding: 10px; page-break-inside: avoid; }
             .id { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
             img { width: 120px; }
         </style></head><body>`;
-        bags.forEach(bag => { html += `<div class="label"><div class="id">${bag.id}</div><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(bag.qrContent)}"></div>`; });
-        html += `<script>window.onload=function(){window.print();window.close();};<\/script></body></html>`;
+        
+        bags.forEach(bag => {
+            html += `<div class="label"><div class="id">${bag.id}</div><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(bag.qrContent)}"></div>`;
+        });
+        
+        html += `<script>window.onload = function() { window.print(); window.close(); };<\/script></body></html>`;
         win.document.write(html);
-    }
-
-    function updateStats() {
-        const counts = { Total: bags.length, Packed: bags.filter(b => b.status === 'Packed').length, 'At Hotel': bags.filter(b => b.status === 'Reached Hotel').length, Missing: bags.filter(b => b.status === 'Missing').length };
-        document.getElementById('statsDashboard').innerHTML = Object.entries(counts).map(([k,v]) => `<div class="stat-card"><h3>${k}</h3><p>${v}</p></div>`).join('');
     }
 
     function startEdit(id) {
@@ -248,26 +212,25 @@
         if(b.photo) {
             document.getElementById('imagePreview').src = b.photo;
             document.getElementById('imagePreview').style.display = "block";
-            tempBase64 = b.photo;
+            document.getElementById('photoStatus').style.display = "none";
+            currentBase64 = b.photo;
         }
-        document.getElementById('mainBtn').innerText = "Update & Sync Everywhere";
-        window.scrollTo({top: 0, behavior: 'smooth'});
+        document.getElementById('mainBtn').innerText = "Update Item";
+        window.scrollTo(0,0);
     }
 
-    function deleteBag(id) { if(confirm("Remove from cloud? All users will lose access to this entry.")) database.ref('wardrobe/' + id).remove(); }
-    
-    function flashSyncStatus() {
-        const indicator = document.getElementById('sync-indicator');
-        indicator.style.display = "block";
-        setTimeout(() => indicator.style.display = "none", 1500);
-    }
-
-    function clearInputs() {
+    function deleteBag(id) { if(confirm("Delete?")) { bags = bags.filter(b => b.id !== id); save(); } }
+    function save() { localStorage.setItem('wardrobe_v_clean', JSON.stringify(bags)); renderBags(); updateStats(); }
+    function clearInputs() { 
         ['contents', 'appearance', 'location'].forEach(i => document.getElementById(i).value = '');
         document.getElementById('imagePreview').style.display = "none";
-        tempBase64 = "";
-        document.getElementById('mainBtn').innerText = "Add Item & Sync Everywhere";
+        document.getElementById('photoStatus').style.display = "block";
+        currentBase64 = "";
+        document.getElementById('mainBtn').innerText = "Track Item";
     }
+
+    updateStats();
+    renderBags();
 </script>
 </body>
 </html>
