@@ -77,14 +77,41 @@
 
     <div id="inventory"></div>
 </div>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-    let bags = JSON.parse(localStorage.getItem('wardrobe_vfinal')) || [];
+    // 1. PASTE YOUR CONFIG FROM STEP 2 HERE
+    const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_PROJECT.firebaseapp.com",
+        databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+        projectId: "YOUR_PROJECT",
+        storageBucket: "YOUR_PROJECT.appspot.com",
+        messagingSenderId: "YOUR_ID",
+        appId: "YOUR_APP_ID"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const bagsRef = db.ref('wardrobe_items');
+
+    let bags = [];
     let editID = null;
 
-    function processBag() {
+    // 2. REAL-TIME SYNC: This runs automatically whenever ANYONE changes data
+    bagsRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        // Convert Firebase object to Array for our existing logic
+        bags = data ? Object.values(data) : [];
+        renderBags();
+    });
+
+    async function processBag() {
         const contents = document.getElementById('contents').value.trim();
         if (!contents) return alert("Item description required.");
+        
         const data = {
             contents,
             category: document.getElementById('category').value,
@@ -92,24 +119,32 @@
             appearance: document.getElementById('appearance').value.trim(),
             location: document.getElementById('location').value.trim()
         };
+
         if (editID) {
-            const idx = bags.findIndex(b => b.id === editID);
-            bags[idx] = { ...bags[idx], ...data };
+            // Update specific item in Firebase
+            await db.ref('wardrobe_items/' + editID).update(data);
             editID = null;
         } else {
+            // Generate ID and Save New
             const prefix = data.category.substring(0,2).toUpperCase();
             const count = (bags.filter(b => b.id.startsWith(prefix)).length + 1).toString().padStart(3, '0');
             const id = `${prefix}-${count}`;
-            bags.push({ id, ...data });
+            await db.ref('wardrobe_items/' + id).set({ id, ...data });
         }
-        save();
         clearInputs();
+    }
+
+    function deleteBag(id) {
+        if(confirm("Delete this item for everyone?")) {
+            db.ref('wardrobe_items/' + id).remove();
+        }
     }
 
     function renderBags() {
         const term = document.getElementById('searchInput').value.toLowerCase();
         const container = document.getElementById('inventory');
         const filtered = bags.filter(b => Object.values(b).some(v => String(v).toLowerCase().includes(term)));
+        
         container.innerHTML = filtered.map(bag => {
             const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent('ID:'+bag.id+'\n'+bag.contents)}`;
             return `
@@ -128,7 +163,25 @@
         }).join('');
     }
 
-    // --- RELIABLE PRINTING LOGIC ---
+    // Existing helper functions updated for Firebase
+    function startEdit(id) {
+        const b = bags.find(bag => bag.id === id);
+        editID = id;
+        document.getElementById('contents').value = b.contents;
+        document.getElementById('category').value = b.category;
+        document.getElementById('status').value = b.status;
+        document.getElementById('appearance').value = b.appearance;
+        document.getElementById('location').value = b.location;
+        document.querySelector('.btn-add').innerText = "Update Item";
+    }
+
+    function clearInputs() {
+        ['contents', 'appearance', 'location'].forEach(id => document.getElementById(id).value = '');
+        document.querySelector('.btn-add').innerText = "Track Item";
+    }
+
+    // Keep your existing printTag() and printAll() functions here...
+
     function printTag(id) {
         const item = bags.find(b => b.id === id);
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent('ID:'+item.id+'\n'+item.contents)}`;
@@ -159,36 +212,11 @@
             return `<div class="label"><div class="id">${item.id}</div><img src="${qrUrl}"></div>`;
         }).join('');
 
-        printWindow.document.write(`
-            <html><head><style>
-                body { display: flex; flex-wrap: wrap; gap: 15px; padding: 20px; font-family: sans-serif; }
-                .label { border: 1px solid black; width: 160px; height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; page-break-inside: avoid; }
-                .id { font-size: 1.2rem; font-weight: bold; font-family: monospace; margin-bottom: 5px; }
-                img { width: 90px; height: 90px; }
-            </style></head><body>
-            ${labelsHtml}
-            <script>window.onload = function() { window.print(); window.close(); };<\/script>
-            </body></html>
-        `);
-        printWindow.document.close();
-    }
-
-    function startEdit(id) {
-        const b = bags.find(bag => bag.id === id);
-        editID = id;
-        document.getElementById('contents').value = b.contents;
-        document.getElementById('category').value = b.category;
-        document.getElementById('status').value = b.status;
-        document.getElementById('appearance').value = b.appearance;
-        document.getElementById('location').value = b.location;
-        document.getElementById('mainBtn').innerText = "Update Item";
-    }
-
     function deleteBag(id) { if(confirm("Delete?")) { bags = bags.filter(b => b.id !== id); save(); } }
     function save() { localStorage.setItem('wardrobe_vfinal', JSON.stringify(bags)); renderBags(); }
     function clearInputs() { ['contents', 'appearance', 'location'].forEach(id => document.getElementById(id).value = ''); document.getElementById('mainBtn').innerText = "Track Item"; }
 
-    renderBags();
+    
 </script>
 </body>
 </html>
