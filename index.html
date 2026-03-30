@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wardrobe Tracker | Final Fix</title>
+    <style>
+        :root { --primary: #2563eb; --success: #059669; --hotel: #0ea5e9; --home: #7c3aed; --danger: #dc2626; --bg: #f1f5f9; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 20px; color: #334155; margin: 0; }
+        .container { max-width: 800px; margin: auto; }
+        
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 2px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; }
+        
+        button { padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-add { background: var(--primary); color: white; width: 100%; }
+        .btn-print-all { background: #334155; color: white; flex: 1; }
+
+        .bag-item { 
+            background: white; border-left: 6px solid #cbd5e1;
+            padding: 15px; margin-bottom: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .status-reachedhome { border-left-color: var(--home) !important; }
+        .status-reachedhotel { border-left-color: var(--hotel) !important; }
+        .status-packed { border-left-color: var(--success) !important; }
+
+        .tag-info { flex: 1; }
+        .tag-id { font-family: monospace; font-weight: 900; font-size: 1.2rem; }
+        .tag-sub { font-size: 0.85rem; color: #64748b; margin-top: 5px; }
+
+        .actions { margin-top: 12px; display: flex; gap: 12px; }
+        .action-link { cursor: pointer; font-size: 0.8rem; color: var(--primary); text-decoration: underline; }
+        .btn-print-sm { background: #e2e8f0; color: #334155; font-size: 0.7rem; padding: 5px 10px; }
+
+        .qr-box { width: 80px; text-align: center; }
+        .qr-box img { width: 100%; border: 1px solid #eee; border-radius: 4px; }
+
+        /* Print Layout CSS (Passed to the new window) */
+        .print-style { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🎒 Wardrobe Tracker</h2>
+
+    <div class="card">
+        <input type="text" id="contents" placeholder="Item Description">
+        <div class="input-grid">
+            <select id="category">
+                <option value="Event outfits">Event outfits</option>
+                <option value="Extra's">Extra's</option>
+                <option value="Jwellery">Jwellery</option>
+                <option value="Lehenga">Lehenga</option>
+                <option value="Suit">Suit</option>
+            </select>
+            <select id="status">
+                <option value="Packed">Packed</option>
+                <option value="Reached Hotel">Reached Hotel</option>
+                <option value="Reached Home">Reached Home</option>
+                <option value="In Transit">In Transit</option>
+                <option value="Missing">Missing</option>
+            </select>
+        </div>
+        <div class="input-grid">
+            <input type="text" id="appearance" placeholder="Box/Bag Look">
+            <input type="text" id="location" placeholder="Location">
+        </div>
+        <button class="btn-add" onclick="processBag()">Track Item</button>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-bottom:20px;">
+        <input type="text" id="searchInput" placeholder="🔍 Search..." oninput="renderBags()" style="flex:3; padding:12px; border-radius:8px; border:2px solid #e2e8f0;">
+        <button class="btn-print-all" onclick="printAll()">Print All Filtered</button>
+    </div>
+
+    <div id="inventory"></div>
+</div>
+
+<script>
+    let bags = JSON.parse(localStorage.getItem('wardrobe_vfinal')) || [];
+    let editID = null;
+
+    function processBag() {
+        const contents = document.getElementById('contents').value.trim();
+        if (!contents) return alert("Item description required.");
+        const data = {
+            contents,
+            category: document.getElementById('category').value,
+            status: document.getElementById('status').value,
+            appearance: document.getElementById('appearance').value.trim(),
+            location: document.getElementById('location').value.trim()
+        };
+        if (editID) {
+            const idx = bags.findIndex(b => b.id === editID);
+            bags[idx] = { ...bags[idx], ...data };
+            editID = null;
+        } else {
+            const prefix = data.category.substring(0,2).toUpperCase();
+            const count = (bags.filter(b => b.id.startsWith(prefix)).length + 1).toString().padStart(3, '0');
+            const id = `${prefix}-${count}`;
+            bags.push({ id, ...data });
+        }
+        save();
+        clearInputs();
+    }
+
+    function renderBags() {
+        const term = document.getElementById('searchInput').value.toLowerCase();
+        const container = document.getElementById('inventory');
+        const filtered = bags.filter(b => Object.values(b).some(v => String(v).toLowerCase().includes(term)));
+        container.innerHTML = filtered.map(bag => {
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent('ID:'+bag.id+'\n'+bag.contents)}`;
+            return `
+                <div class="bag-item status-${bag.status.toLowerCase().replace(/\s/g, '')}" id="item-${bag.id}">
+                    <div class="tag-info">
+                        <span class="tag-id">${bag.id}</span>
+                        <div class="tag-sub"><strong>${bag.category}:</strong> ${bag.contents}</div>
+                        <div class="actions">
+                            <span class="action-link" onclick="startEdit('${bag.id}')">Edit</span>
+                            <span class="action-link" style="color:var(--danger)" onclick="deleteBag('${bag.id}')">Delete</span>
+                            <button class="btn-print-sm" onclick="printTag('${bag.id}')">Print Label</button>
+                        </div>
+                    </div>
+                    <div class="qr-box"><img src="${qrUrl}"></div>
+                </div>`;
+        }).join('');
+    }
+
+    // --- RELIABLE PRINTING LOGIC ---
+    function printTag(id) {
+        const item = bags.find(b => b.id === id);
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent('ID:'+item.id+'\n'+item.contents)}`;
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <html><head><title>Print Label</title>
+            <style>
+                body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: sans-serif; }
+                .label { border: 2px solid black; width: 180px; height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 10px; }
+                .id { font-size: 1.5rem; font-weight: bold; font-family: monospace; margin-bottom: 10px; }
+                img { width: 100px; height: 100px; }
+            </style></head><body>
+            <div class="label"><div class="id">${item.id}</div><img src="${qrUrl}"></div>
+            <script>window.onload = function() { window.print(); window.close(); };<\/script>
+            </body></html>
+        `);
+        printWindow.document.close();
+    }
+
+    function printAll() {
+        const term = document.getElementById('searchInput').value.toLowerCase();
+        const filtered = bags.filter(b => Object.values(b).some(v => String(v).toLowerCase().includes(term)));
+        if (filtered.length === 0) return alert("Nothing to print!");
+        
+        const printWindow = window.open('', '_blank');
+        let labelsHtml = filtered.map(item => {
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent('ID:'+item.id+'\n'+item.contents)}`;
+            return `<div class="label"><div class="id">${item.id}</div><img src="${qrUrl}"></div>`;
+        }).join('');
+
+        printWindow.document.write(`
+            <html><head><style>
+                body { display: flex; flex-wrap: wrap; gap: 15px; padding: 20px; font-family: sans-serif; }
+                .label { border: 1px solid black; width: 160px; height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; page-break-inside: avoid; }
+                .id { font-size: 1.2rem; font-weight: bold; font-family: monospace; margin-bottom: 5px; }
+                img { width: 90px; height: 90px; }
+            </style></head><body>
+            ${labelsHtml}
+            <script>window.onload = function() { window.print(); window.close(); };<\/script>
+            </body></html>
+        `);
+        printWindow.document.close();
+    }
+
+    function startEdit(id) {
+        const b = bags.find(bag => bag.id === id);
+        editID = id;
+        document.getElementById('contents').value = b.contents;
+        document.getElementById('category').value = b.category;
+        document.getElementById('status').value = b.status;
+        document.getElementById('appearance').value = b.appearance;
+        document.getElementById('location').value = b.location;
+        document.getElementById('mainBtn').innerText = "Update Item";
+    }
+
+    function deleteBag(id) { if(confirm("Delete?")) { bags = bags.filter(b => b.id !== id); save(); } }
+    function save() { localStorage.setItem('wardrobe_vfinal', JSON.stringify(bags)); renderBags(); }
+    function clearInputs() { ['contents', 'appearance', 'location'].forEach(id => document.getElementById(id).value = ''); document.getElementById('mainBtn').innerText = "Track Item"; }
+
+    renderBags();
+</script>
+</body>
+</html>
