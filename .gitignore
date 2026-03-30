@@ -1,6 +1,6 @@
 .architect
 bootstrap.css
-bootstrap.js
+config.js
 bootstrap.json
 bootstrap.jsonp
 build/
