@@ -1,15 +1,3 @@
-  // This file contains your private cloud keys. 
-// Do not share this file publicly.
-const SECURE_CONFIG = {
-    apiKey: "AIzaSyCP_0PzRJHifWbRoyuywDFyzV2EgOLbm9c",
-    authDomain: "wardrobe-tracker-ab048.firebaseapp.com",
-    databaseURL: "https://wardrobe-tracker-ab048-default-rtdb.firebaseio.com",
-    projectId: "wardrobe-tracker-ab048",
-    storageBucket: "wardrobe-tracker-ab048.firebasestorage.app",
-    messagingSenderId: "811831942896",
-    appId: "1:811831942896:web:67dae79bf31a1cf917ec35"
-};
-
 
 
 
