@@ -29,7 +29,6 @@
         button { padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .btn-add { background: var(--primary); color: white; width: 100%; margin-top: 5px; }
         
-        /* Item List */
         .bag-item { 
             background: white; border-radius: 12px; padding: 15px; 
             margin-bottom: 12px; display: grid; grid-template-columns: 40px 120px 1fr 100px; gap: 15px;
@@ -41,7 +40,7 @@
         .status-reached-home { border-left-color: var(--home); }
         .status-missing { border-left-color: var(--danger); }
 
-        .item-checkbox { width: 20px; height: 20px; cursor: pointer; }
+        .item-checkbox { width: 22px; height: 22px; cursor: pointer; }
         .bag-img { width: 120px; height: 120px; object-fit: cover; border-radius: 8px; background: #f1f5f9; }
         .info h4 { margin: 0 0 5px 0; font-size: 1.1rem; }
         .info p { margin: 0; font-size: 0.85rem; color: #64748b; line-height: 1.4; }
@@ -52,7 +51,6 @@
         .qr-side img { width: 80px; display: block; margin: 0 auto 4px auto; border: 1px solid #eee; padding: 2px; background: white; }
         .qr-side span { font-size: 10px; font-weight: 900; font-family: monospace; color: #334155; }
         
-        /* Bulk Edit Bar */
         #bulk-bar { 
             position: fixed; bottom: 0; left: 0; right: 0; background: #1e293b; color: white; 
             padding: 15px; display: none; justify-content: center; align-items: center; gap: 15px;
@@ -98,8 +96,8 @@
             </select>
         </div>
         <div class="input-grid">
-            <input type="text" id="location" placeholder="Location (Suitcase 1)">
-            <input type="text" id="appearance" placeholder="Appearance (Red Ribbon)">
+            <input type="text" id="location" placeholder="Location (e.g. Suitcase 1)">
+            <input type="text" id="appearance" placeholder="Appearance (e.g. Red Ribbon)">
         </div>
         <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="handleImage(this)">
         <button type="button" class="photo-btn" onclick="document.getElementById('photoInput').click()">📸 Add Photo</button>
@@ -107,8 +105,9 @@
         <button id="mainBtn" class="btn-add" onclick="uploadToCloud()">Add Item & Sync</button>
     </div>
 
-    <div style="margin-bottom: 20px; display: flex; gap: 10px;">
-        <input type="text" id="searchInput" placeholder="🔍 Search..." oninput="renderBags()" style="flex: 1; margin: 0;">
+    <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
+        <input type="checkbox" id="selectAll" title="Select All Filtered" onclick="toggleSelectAll()" style="width:20px; height:20px; cursor:pointer;">
+        <input type="text" id="searchInput" placeholder="🔍 Search by Item, Owner, Location, ID, or Look..." oninput="renderBags()" style="flex: 1; margin: 0;">
         <button onclick="printAllLabels()" style="background:#1e293b; color:white;">Print All</button>
     </div>
 
@@ -119,16 +118,16 @@
     <span id="selected-count">0 Items Selected</span>
     <div class="bulk-inputs">
         <select id="bulk-status">
-            <option value="">Change Status...</option>
+            <option value="">Status...</option>
             <option value="Packed">Packed</option>
             <option value="In Transit">In Transit</option>
             <option value="Reached Hotel">Reached Hotel</option>
             <option value="Reached Home">Reached Home</option>
             <option value="Missing">Missing</option>
         </select>
-        <input type="text" id="bulk-location" placeholder="New Location">
+        <input type="text" id="bulk-location" placeholder="Update Location">
     </div>
-    <button onclick="applyBulkEdit()" style="background: var(--success); color: white;">Update Selected</button>
+    <button onclick="applyBulkEdit()" style="background: var(--success); color: white;">Update</button>
     <button onclick="clearSelection()" style="background: transparent; color: white; border: 1px solid white;">Cancel</button>
 </div>
 
@@ -137,6 +136,7 @@
     const database = firebase.database();
     
     let bags = [];
+    let filteredIds = []; 
     let editID = null;
     let tempBase64 = "";
     let selectedIds = new Set();
@@ -192,19 +192,32 @@
         updateBulkBar();
     }
 
+    function toggleSelectAll() {
+        const isChecked = document.getElementById('selectAll').checked;
+        if (isChecked) {
+            filteredIds.forEach(id => selectedIds.add(id));
+        } else {
+            selectedIds.clear();
+        }
+        renderBags();
+        updateBulkBar();
+    }
+
     function updateBulkBar() {
         const bar = document.getElementById('bulk-bar');
         const countTxt = document.getElementById('selected-count');
         if (selectedIds.size > 0) {
             bar.style.display = 'flex';
-            countTxt.innerText = `${selectedIds.size} Items Selected`;
+            countTxt.innerText = `${selectedIds.size} Selected`;
         } else {
             bar.style.display = 'none';
+            document.getElementById('selectAll').checked = false;
         }
     }
 
     function clearSelection() {
         selectedIds.clear();
+        document.getElementById('selectAll').checked = false;
         renderBags();
         updateBulkBar();
     }
@@ -212,8 +225,7 @@
     function applyBulkEdit() {
         const newStatus = document.getElementById('bulk-status').value;
         const newLoc = document.getElementById('bulk-location').value.trim();
-        
-        if (!newStatus && !newLoc) return alert("Select a status or enter a location to update.");
+        if (!newStatus && !newLoc) return alert("Select a status or location.");
 
         const updates = {};
         selectedIds.forEach(id => {
@@ -232,11 +244,16 @@
     function renderBags() {
         const term = document.getElementById('searchInput').value.toLowerCase();
         const container = document.getElementById('inventory');
+        
         const filtered = bags.filter(b => 
             b.contents.toLowerCase().includes(term) || 
             b.id.toLowerCase().includes(term) || 
-            (b.owner && b.owner.toLowerCase().includes(term))
+            (b.owner && b.owner.toLowerCase().includes(term)) ||
+            (b.location && b.location.toLowerCase().includes(term)) || // Expanded location search
+            (b.appearance && b.appearance.toLowerCase().includes(term)) // Expanded appearance search
         );
+
+        filteredIds = filtered.map(b => b.id);
         
         container.innerHTML = filtered.reverse().map(bag => `
             <div class="bag-item status-${bag.status.toLowerCase().replace(/\s/g, '-')}">
@@ -247,6 +264,7 @@
                     <p>👤 <b>Owner: ${bag.owner || 'N/A'}</b></p>
                     <p>🏷️ <b>${bag.id}</b> | <b>${bag.status}</b></p>
                     <p>📍 Loc: ${bag.location || 'Unknown'}</p>
+                    <p>📦 Look: ${bag.appearance || 'N/A'}</p>
                     <div class="actions">
                         <button class="btn-sm" onclick="startEdit('${bag.id}')">Edit</button>
                         <button class="btn-sm" onclick="printSingleLabel('${bag.id}')">Label</button>
