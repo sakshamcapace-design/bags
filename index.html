@@ -7,21 +7,18 @@
     
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-
     <script src="config.json"></script>
 
     <style>
         :root { --primary: #2563eb; --success: #059669; --hotel: #0ea5e9; --home: #7c3aed; --danger: #dc2626; --bg: #f8fafc; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); padding: 20px; color: #1e293b; margin: 0; }
-        .container { max-width: 900px; margin: auto; padding-bottom: 50px; }
+        .container { max-width: 900px; margin: auto; padding-bottom: 100px; }
         
-        /* Stats Dashboard */
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 20px; }
         .stat-card { background: white; padding: 12px; border-radius: 10px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-bottom: 3px solid #e2e8f0; }
         .stat-card h3 { margin: 0; font-size: 0.7rem; color: #64748b; text-transform: uppercase; }
         .stat-card p { margin: 5px 0 0; font-size: 1.4rem; font-weight: bold; }
 
-        /* Form Card */
         .card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #e2e8f0; }
         .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         input, select { width: 100%; padding: 10px; margin: 5px 0; border: 2px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
@@ -31,36 +28,45 @@
 
         button { padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .btn-add { background: var(--primary); color: white; width: 100%; margin-top: 5px; }
-        .btn-print-all { background: #1e293b; color: white; padding: 0 20px; }
         
         /* Item List */
         .bag-item { 
             background: white; border-radius: 12px; padding: 15px; 
-            margin-bottom: 12px; display: grid; grid-template-columns: 120px 1fr 100px; gap: 15px;
+            margin-bottom: 12px; display: grid; grid-template-columns: 40px 120px 1fr 100px; gap: 15px;
             align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 6px solid #cbd5e1;
+            position: relative;
         }
         .status-packed { border-left-color: var(--success); }
         .status-reached-hotel { border-left-color: var(--hotel); }
         .status-reached-home { border-left-color: var(--home); }
         .status-missing { border-left-color: var(--danger); }
 
+        .item-checkbox { width: 20px; height: 20px; cursor: pointer; }
         .bag-img { width: 120px; height: 120px; object-fit: cover; border-radius: 8px; background: #f1f5f9; }
         .info h4 { margin: 0 0 5px 0; font-size: 1.1rem; }
         .info p { margin: 0; font-size: 0.85rem; color: #64748b; line-height: 1.4; }
         .actions { margin-top: 10px; display: flex; gap: 8px; }
         .btn-sm { padding: 6px 12px; font-size: 11px; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
 
-        /* QR Label Design */
         .qr-side { text-align: center; }
         .qr-side img { width: 80px; display: block; margin: 0 auto 4px auto; border: 1px solid #eee; padding: 2px; background: white; }
         .qr-side span { font-size: 10px; font-weight: 900; font-family: monospace; color: #334155; }
         
-        #sync-indicator { position: fixed; bottom: 20px; left: 20px; background: #059669; color: white; padding: 8px 16px; border-radius: 30px; font-size: 12px; display: none; z-index: 999; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        /* Bulk Edit Bar */
+        #bulk-bar { 
+            position: fixed; bottom: 0; left: 0; right: 0; background: #1e293b; color: white; 
+            padding: 15px; display: none; justify-content: center; align-items: center; gap: 15px;
+            z-index: 1000; box-shadow: 0 -4px 10px rgba(0,0,0,0.2);
+        }
+        .bulk-inputs { display: flex; gap: 10px; align-items: center; }
+        .bulk-inputs select, .bulk-inputs input { width: 150px; margin: 0; background: #334155; color: white; border: 1px solid #475569; }
+
+        #sync-indicator { position: fixed; bottom: 80px; left: 20px; background: #059669; color: white; padding: 8px 16px; border-radius: 30px; font-size: 12px; display: none; z-index: 999; }
     </style>
 </head>
 <body>
 
-<div id="sync-indicator">✓ Live Cloud Sync Active</div>
+<div id="sync-indicator">✓ Cloud Updated</div>
 
 <div class="container">
     <h2 style="display: flex; justify-content: space-between; align-items: center;">
@@ -72,16 +78,17 @@
 
     <div class="card">
         <div class="input-grid">
-            <input type="text" id="contents" placeholder="Item Name (e.g. Bridal Lehenga)">
+            <input type="text" id="contents" placeholder="Item Name">
+            <input type="text" id="owner" placeholder="Belongs To">
+        </div>
+        <div class="input-grid">
             <select id="category">
                 <option value="Lehenga">Lehenga</option>
                 <option value="Suit">Suit</option>
-                <option value="Jwellery">Jewellery</option>
+                <option value="Jewellery">Jewellery</option>
                 <option value="Event outfits">Event outfits</option>
                 <option value="Extras">Extras</option>
             </select>
-        </div>
-        <div class="input-grid">
             <select id="status">
                 <option value="Packed">Packed</option>
                 <option value="In Transit">In Transit</option>
@@ -89,50 +96,57 @@
                 <option value="Reached Home">Reached Home</option>
                 <option value="Missing">Missing</option>
             </select>
-            <input type="text" id="location" placeholder="Current Location (e.g. Suitcase 1)">
         </div>
-        <input type="text" id="appearance" placeholder="Bag Appearance (e.g. Silver Trunk with Ribbon)">
-        
+        <div class="input-grid">
+            <input type="text" id="location" placeholder="Location (Suitcase 1)">
+            <input type="text" id="appearance" placeholder="Appearance (Red Ribbon)">
+        </div>
         <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="handleImage(this)">
-        <button type="button" class="photo-btn" onclick="document.getElementById('photoInput').click()">📸 Add or Snap Photo</button>
+        <button type="button" class="photo-btn" onclick="document.getElementById('photoInput').click()">📸 Add Photo</button>
         <img id="imagePreview">
-
-        <button id="mainBtn" class="btn-add" onclick="uploadToCloud()">Add Item & Sync Everywhere</button>
+        <button id="mainBtn" class="btn-add" onclick="uploadToCloud()">Add Item & Sync</button>
     </div>
 
     <div style="margin-bottom: 20px; display: flex; gap: 10px;">
-        <input type="text" id="searchInput" placeholder="🔍 Search description, ID, or location..." oninput="renderBags()" style="flex: 1; margin: 0;">
-        <button class="btn-print-all" onclick="printAllLabels()">Print All Labels</button>
+        <input type="text" id="searchInput" placeholder="🔍 Search..." oninput="renderBags()" style="flex: 1; margin: 0;">
+        <button onclick="printAllLabels()" style="background:#1e293b; color:white;">Print All</button>
     </div>
 
     <div id="inventory"></div>
 </div>
 
-<script>
-    // Verify config.js is loaded
-    if (typeof SECURE_CONFIG === 'undefined') {
-        document.body.innerHTML = "<div style='padding:50px; text-align:center;'><h1>❌ Config Error</h1><p>Please ensure <b>config.js</b> is in the same folder and contains your Firebase keys.</p></div>";
-    }
+<div id="bulk-bar">
+    <span id="selected-count">0 Items Selected</span>
+    <div class="bulk-inputs">
+        <select id="bulk-status">
+            <option value="">Change Status...</option>
+            <option value="Packed">Packed</option>
+            <option value="In Transit">In Transit</option>
+            <option value="Reached Hotel">Reached Hotel</option>
+            <option value="Reached Home">Reached Home</option>
+            <option value="Missing">Missing</option>
+        </select>
+        <input type="text" id="bulk-location" placeholder="New Location">
+    </div>
+    <button onclick="applyBulkEdit()" style="background: var(--success); color: white;">Update Selected</button>
+    <button onclick="clearSelection()" style="background: transparent; color: white; border: 1px solid white;">Cancel</button>
+</div>
 
-    // Initialize Cloud
+<script>
     firebase.initializeApp(SECURE_CONFIG);
     const database = firebase.database();
     
     let bags = [];
     let editID = null;
     let tempBase64 = "";
+    let selectedIds = new Set();
 
-    // Real-time listener
     database.ref('wardrobe').on('value', (snapshot) => {
         const val = snapshot.val();
         bags = val ? Object.values(val) : [];
         document.getElementById('connectionStatus').innerText = "● Cloud Connected";
         renderBags();
         updateStats();
-        flashSyncStatus();
-    }, (error) => {
-        document.getElementById('connectionStatus').innerText = "❌ Sync Error";
-        console.error(error);
     });
 
     function handleImage(input) {
@@ -149,16 +163,14 @@
 
     function uploadToCloud() {
         const contents = document.getElementById('contents').value.trim();
+        const owner = document.getElementById('owner').value.trim() || "Unknown";
         if (!contents) return alert("Please enter an item name.");
 
         const id = editID || `${document.getElementById('category').value.substring(0,2).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
-        
-        // Static QR content (No location/status)
-        const qrContent = `ID: ${id}\nITEM: ${contents}\nCAT: ${document.getElementById('category').value}`;
+        const qrContent = `BELONGS TO: ${owner}\nBAG ID: ${id}`;
 
         const entry = {
-            id,
-            contents,
+            id, contents, owner,
             category: document.getElementById('category').value,
             status: document.getElementById('status').value,
             appearance: document.getElementById('appearance').value.trim(),
@@ -170,7 +182,51 @@
         database.ref('wardrobe/' + id).set(entry).then(() => {
             editID = null;
             clearInputs();
-        }).catch(err => alert("Cloud Sync Failed: " + err.message));
+            flashSync();
+        });
+    }
+
+    function toggleSelection(id) {
+        if (selectedIds.has(id)) selectedIds.delete(id);
+        else selectedIds.add(id);
+        updateBulkBar();
+    }
+
+    function updateBulkBar() {
+        const bar = document.getElementById('bulk-bar');
+        const countTxt = document.getElementById('selected-count');
+        if (selectedIds.size > 0) {
+            bar.style.display = 'flex';
+            countTxt.innerText = `${selectedIds.size} Items Selected`;
+        } else {
+            bar.style.display = 'none';
+        }
+    }
+
+    function clearSelection() {
+        selectedIds.clear();
+        renderBags();
+        updateBulkBar();
+    }
+
+    function applyBulkEdit() {
+        const newStatus = document.getElementById('bulk-status').value;
+        const newLoc = document.getElementById('bulk-location').value.trim();
+        
+        if (!newStatus && !newLoc) return alert("Select a status or enter a location to update.");
+
+        const updates = {};
+        selectedIds.forEach(id => {
+            if (newStatus) updates[`wardrobe/${id}/status`] = newStatus;
+            if (newLoc) updates[`wardrobe/${id}/location`] = newLoc;
+        });
+
+        database.ref().update(updates).then(() => {
+            clearSelection();
+            flashSync();
+            document.getElementById('bulk-status').value = "";
+            document.getElementById('bulk-location').value = "";
+        });
     }
 
     function renderBags() {
@@ -179,17 +235,18 @@
         const filtered = bags.filter(b => 
             b.contents.toLowerCase().includes(term) || 
             b.id.toLowerCase().includes(term) || 
-            b.location.toLowerCase().includes(term)
+            (b.owner && b.owner.toLowerCase().includes(term))
         );
         
         container.innerHTML = filtered.reverse().map(bag => `
             <div class="bag-item status-${bag.status.toLowerCase().replace(/\s/g, '-')}">
+                <input type="checkbox" class="item-checkbox" ${selectedIds.has(bag.id) ? 'checked' : ''} onchange="toggleSelection('${bag.id}')">
                 <img src="${bag.photo || 'https://via.placeholder.com/120?text=No+Photo'}" class="bag-img">
                 <div class="info">
                     <h4>${bag.contents}</h4>
+                    <p>👤 <b>Owner: ${bag.owner || 'N/A'}</b></p>
                     <p>🏷️ <b>${bag.id}</b> | <b>${bag.status}</b></p>
                     <p>📍 Loc: ${bag.location || 'Unknown'}</p>
-                    <p>📦 Look: ${bag.appearance || 'N/A'}</p>
                     <div class="actions">
                         <button class="btn-sm" onclick="startEdit('${bag.id}')">Edit</button>
                         <button class="btn-sm" onclick="printSingleLabel('${bag.id}')">Label</button>
@@ -207,27 +264,13 @@
     function printSingleLabel(id) {
         const bag = bags.find(b => b.id === id);
         const win = window.open('', '_blank');
-        win.document.write(`
-            <html><body style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; margin:0; font-family:monospace;">
-                <div style="text-align:center; padding:20px; border:2px solid #000; width:180px;">
-                    <div style="font-size:24px; font-weight:bold; margin-bottom:5px;">${bag.id}</div>
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(bag.qrContent)}" style="width:140px;">
-                </div>
-                <script>window.onload = function() { window.print(); window.close(); };<\/script>
-            </body></html>
-        `);
+        win.document.write(`<html><body style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;font-family:monospace;"><div style="text-align:center;padding:20px;border:2px solid #000;width:200px;"><div style="font-size:18px;font-weight:bold;margin-bottom:5px;">${bag.owner || 'WARDROBE'}</div><img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(bag.qrContent)}" style="width:160px;"><div style="font-size:14px;margin-top:5px;">ID: ${bag.id}</div></div><script>window.onload=function(){window.print();window.close();};<\/script></body></html>`);
     }
 
     function printAllLabels() {
-        if (bags.length === 0) return alert("No items to print.");
         const win = window.open('', '_blank');
-        let html = `<html><head><style>
-            body { display: flex; flex-wrap: wrap; gap: 15px; padding: 20px; font-family: monospace; }
-            .label { width: 140px; text-align: center; border: 1px solid #eee; padding: 10px; page-break-inside: avoid; }
-            .id { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
-            img { width: 120px; }
-        </style></head><body>`;
-        bags.forEach(bag => { html += `<div class="label"><div class="id">${bag.id}</div><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(bag.qrContent)}"></div>`; });
+        let html = `<html><head><style>body{display:flex;flex-wrap:wrap;gap:15px;padding:20px;font-family:monospace;}.label{width:160px;text-align:center;border:1px solid #eee;padding:10px;page-break-inside:avoid;}.owner{font-size:14px;font-weight:bold;margin-bottom:5px;}img{width:130px;}</style></head><body>`;
+        bags.forEach(bag => { html += `<div class="label"><div class="owner">${bag.owner || 'WARDROBE'}</div><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(bag.qrContent)}"><div>${bag.id}</div></div>`; });
         html += `<script>window.onload=function(){window.print();window.close();};<\/script></body></html>`;
         win.document.write(html);
     }
@@ -241,6 +284,7 @@
         const b = bags.find(bag => bag.id === id);
         editID = id;
         document.getElementById('contents').value = b.contents;
+        document.getElementById('owner').value = b.owner || '';
         document.getElementById('category').value = b.category;
         document.getElementById('status').value = b.status;
         document.getElementById('appearance').value = b.appearance;
@@ -250,24 +294,22 @@
             document.getElementById('imagePreview').style.display = "block";
             tempBase64 = b.photo;
         }
-        document.getElementById('mainBtn').innerText = "Update & Sync Everywhere";
+        document.getElementById('mainBtn').innerText = "Update Item";
         window.scrollTo({top: 0, behavior: 'smooth'});
     }
 
-    function deleteBag(id) { if(confirm("Remove from cloud? All users will lose access to this entry.")) database.ref('wardrobe/' + id).remove(); }
-    
-    function flashSyncStatus() {
-        const indicator = document.getElementById('sync-indicator');
-        indicator.style.display = "block";
-        setTimeout(() => indicator.style.display = "none", 1500);
+    function deleteBag(id) { if(confirm("Remove from cloud?")) database.ref('wardrobe/' + id).remove(); }
+    function flashSync() {
+        const ind = document.getElementById('sync-indicator');
+        ind.style.display = 'block';
+        setTimeout(() => ind.style.display = 'none', 2000);
     }
-
     function clearInputs() {
-        ['contents', 'appearance', 'location'].forEach(i => document.getElementById(i).value = '');
+        ['contents', 'owner', 'appearance', 'location'].forEach(i => document.getElementById(i).value = '');
         document.getElementById('imagePreview').style.display = "none";
         tempBase64 = "";
-        document.getElementById('mainBtn').innerText = "Add Item & Sync Everywhere";
+        document.getElementById('mainBtn').innerText = "Add Item & Sync";
     }
 </script>
 </body>
-</html>
+</html>	
